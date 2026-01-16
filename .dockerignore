@@ -1,0 +1,33 @@
+# Node modules (will be installed in container)
+node_modules/
+
+# Test files
+tests/
+test-server.js
+coverage/
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.kiro/
+
+# Documentation
+README.md
+
+# CI/CD files
+.github/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
