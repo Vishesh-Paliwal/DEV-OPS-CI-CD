@@ -38,7 +38,7 @@ class UserStore {
       email: userData.email,
       createdAt: new Date().toISOString()
     };
-    
+
     this.users.set(user.id, user);
     return user;
   }
