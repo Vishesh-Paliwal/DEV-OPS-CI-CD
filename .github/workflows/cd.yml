@@ -1,0 +1,105 @@
+name: Continuous Deployment
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+    branches: [main]
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/devops-cicd-pipeline
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+        
+    - name: Configure kubectl for DigitalOcean
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+        kubectl get nodes  # Verify connection
+        
+    - name: Install NGINX Ingress Controller (if not exists)
+      run: |
+        export KUBECONFIG=kubeconfig
+        # Check if ingress controller exists
+        if ! kubectl get namespace ingress-nginx >/dev/null 2>&1; then
+          echo "Installing NGINX Ingress Controller for DigitalOcean..."
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/do/deploy.yaml
+          
+          # Wait for ingress controller to be ready
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=300s
+        else
+          echo "NGINX Ingress Controller already exists"
+        fi
+        
+    - name: Deploy to DigitalOcean Kubernetes
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Apply all manifests
+        kubectl apply -f k8s/
+        
+        # Update deployment with new image
+        kubectl set image deployment/devops-api \
+          api=${{ env.DOCKER_IMAGE }}:${{ github.event.workflow_run.head_sha }} \
+          -n devops-demo
+          
+    - name: Wait for rollout completion
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl rollout status deployment/devops-api -n devops-demo --timeout=600s
+        
+    - name: Verify deployment health
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get deployment status
+        kubectl get deployment devops-api -n devops-demo
+        
+        # Get pod status
+        kubectl get pods -l app=devops-api -n devops-demo
+        
+        # Get ingress external IP
+        echo "Getting external IP (may take a few minutes for DigitalOcean LB)..."
+        kubectl get ingress devops-api-ingress -n devops-demo
+        
+        # Wait for external IP and test health endpoint
+        for i in {1..30}; do
+          EXTERNAL_IP=$(kubectl get ingress devops-api-ingress -n devops-demo -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+          if [ ! -z "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "null" ]; then
+            echo "External IP found: $EXTERNAL_IP"
+            echo "Testing health endpoint..."
+            if curl -f --max-time 10 "http://$EXTERNAL_IP/health"; then
+              echo "✅ Deployment successful! App accessible at http://$EXTERNAL_IP"
+              break
+            fi
+          fi
+          echo "Waiting for external IP... (attempt $i/30)"
+          sleep 10
+        done
+        
+    - name: Rollback on failure
+      if: failure()
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "❌ Deployment failed, rolling back..."
+        kubectl rollout undo deployment/devops-api -n devops-demo
+        kubectl rollout status deployment/devops-api -n devops-demo --timeout=300s
+        echo "✅ Rollback completed"
