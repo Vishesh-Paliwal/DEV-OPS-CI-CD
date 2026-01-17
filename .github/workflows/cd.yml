@@ -35,8 +35,17 @@ jobs:
     - name: Install NGINX Ingress Controller
       run: |
         export KUBECONFIG=kubeconfig
-        echo "Installing NGINX Ingress Controller for DigitalOcean..."
-        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/do/deploy.yaml
+        echo "Downloading NGINX Ingress Controller manifest..."
+        curl -L https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/do/deploy.yaml -o ingress-deploy.yaml
+        
+        echo "Disabling Proxy Protocol to resolve connectivity issues..."
+        # Disable Proxy Protocol in ConfigMap
+        sed -i 's/use-proxy-protocol: "true"/use-proxy-protocol: "false"/g' ingress-deploy.yaml
+        # Disable Proxy Protocol in Service
+        sed -i 's/service.beta.kubernetes.io\/do-loadbalancer-enable-proxy-protocol: "true"/service.beta.kubernetes.io\/do-loadbalancer-enable-proxy-protocol: "false"/g' ingress-deploy.yaml
+        
+        echo "Applying Ingress Controller manifest..."
+        kubectl apply -f ingress-deploy.yaml
         
         # Wait for ingress controller to be ready
         kubectl wait --namespace ingress-nginx \
