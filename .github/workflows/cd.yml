@@ -79,16 +79,12 @@ jobs:
         kubectl apply -f k8s/service.yaml
         
         echo "Applying Deployment..."
+        # Substitute image in deployment yaml and apply
+        sed -i "s|placeholder/devops-cicd-pipeline:latest|${DOCKER_IMAGE}:${{ github.event.workflow_run.head_sha }}|g" k8s/deployment.yaml
         kubectl apply -f k8s/deployment.yaml
         
         echo "Applying Ingress..."
         kubectl apply -f k8s/ingress.yaml
-        
-        # Update deployment with new image
-        echo "Updating deployment with new image: ${{ env.DOCKER_IMAGE }}:${{ github.event.workflow_run.head_sha }}"
-        kubectl set image deployment/devops-api \
-          api=${{ env.DOCKER_IMAGE }}:${{ github.event.workflow_run.head_sha }} \
-          -n devops-demo
           
         echo "Deployment update completed"
           

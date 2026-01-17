@@ -30,7 +30,7 @@ spec:
         resources:
           requests:
             memory: "64Mi"   # Reduced for limited node resources
-            cpu: "50m"       # Reduced for limited node resources
+            cpu: "25m"       # Reduced for limited node resources
           limits:
             memory: "128Mi"  # Reduced for limited node resources
             cpu: "100m"      # Reduced for limited node resources
