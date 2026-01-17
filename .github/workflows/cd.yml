@@ -62,6 +62,15 @@ jobs:
         # Verify namespace exists (no wait needed, namespaces are ready immediately)
         kubectl get namespace devops-demo
         
+        # Create Docker registry secret for pulling images from DockerHub
+        echo "Creating Docker registry secret..."
+        kubectl create secret docker-registry dockerhub-secret \
+          --docker-server=https://index.docker.io/v1/ \
+          --docker-username=${{ secrets.DOCKERHUB_USERNAME }} \
+          --docker-password=${{ secrets.DOCKERHUB_TOKEN }} \
+          --namespace=devops-demo \
+          --dry-run=client -o yaml | kubectl apply -f -
+        
         # Apply remaining manifests in order
         echo "Applying ConfigMap..."
         kubectl apply -f k8s/configmap.yaml
@@ -86,7 +95,21 @@ jobs:
     - name: Wait for rollout completion
       run: |
         export KUBECONFIG=kubeconfig
-        kubectl rollout status deployment/devops-api -n devops-demo --timeout=600s
+        
+        echo "Waiting for deployment rollout..."
+        if ! kubectl rollout status deployment/devops-api -n devops-demo --timeout=600s; then
+          echo "❌ Rollout failed or timed out. Checking pod status..."
+          kubectl get pods -n devops-demo -l app=devops-api
+          echo ""
+          echo "Recent events:"
+          kubectl get events -n devops-demo --sort-by='.lastTimestamp' | tail -20
+          echo ""
+          echo "Pod descriptions:"
+          kubectl describe pods -n devops-demo -l app=devops-api
+          exit 1
+        fi
+        
+        echo "✅ Rollout completed successfully"
         
     - name: Verify deployment health
       run: |

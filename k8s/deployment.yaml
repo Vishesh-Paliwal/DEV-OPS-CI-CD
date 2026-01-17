@@ -15,9 +15,12 @@ spec:
       labels:
         app: devops-api
     spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
       containers:
       - name: api
         image: placeholder/devops-cicd-pipeline:latest  # Will be updated by CI/CD pipeline
+        imagePullPolicy: Always  # Always pull the latest image
         ports:
         - containerPort: 3000
           name: http
