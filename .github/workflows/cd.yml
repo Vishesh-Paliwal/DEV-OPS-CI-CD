@@ -53,13 +53,35 @@ jobs:
       run: |
         export KUBECONFIG=kubeconfig
         
-        # Apply all manifests
-        kubectl apply -f k8s/
+        echo "Applying Kubernetes manifests..."
+        
+        # Apply namespace first
+        echo "Creating namespace..."
+        kubectl apply -f k8s/namespace.yaml
+        
+        # Wait a moment for namespace to be ready
+        kubectl wait --for=condition=Active namespace/devops-demo --timeout=30s
+        
+        # Apply remaining manifests in order
+        echo "Applying ConfigMap..."
+        kubectl apply -f k8s/configmap.yaml
+        
+        echo "Applying Service..."
+        kubectl apply -f k8s/service.yaml
+        
+        echo "Applying Deployment..."
+        kubectl apply -f k8s/deployment.yaml
+        
+        echo "Applying Ingress..."
+        kubectl apply -f k8s/ingress.yaml
         
         # Update deployment with new image
+        echo "Updating deployment with new image: ${{ env.DOCKER_IMAGE }}:${{ github.event.workflow_run.head_sha }}"
         kubectl set image deployment/devops-api \
           api=${{ env.DOCKER_IMAGE }}:${{ github.event.workflow_run.head_sha }} \
           -n devops-demo
+          
+        echo "Deployment update completed"
           
     - name: Wait for rollout completion
       run: |
@@ -99,7 +121,16 @@ jobs:
       if: failure()
       run: |
         export KUBECONFIG=kubeconfig
-        echo "❌ Deployment failed, rolling back..."
-        kubectl rollout undo deployment/devops-api -n devops-demo
-        kubectl rollout status deployment/devops-api -n devops-demo --timeout=300s
-        echo "✅ Rollback completed"
+        echo "❌ Deployment failed, attempting rollback..."
+        
+        # Check if deployment exists before trying to rollback
+        if kubectl get deployment devops-api -n devops-demo >/dev/null 2>&1; then
+          echo "Rolling back deployment..."
+          kubectl rollout undo deployment/devops-api -n devops-demo
+          kubectl rollout status deployment/devops-api -n devops-demo --timeout=300s
+          echo "✅ Rollback completed"
+        else
+          echo "⚠️  Deployment doesn't exist yet, cleaning up resources..."
+          kubectl delete -f k8s/ --ignore-not-found=true
+          echo "✅ Cleanup completed"
+        fi

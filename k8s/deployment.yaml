@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: devops-api:latest  # Will be updated by CI/CD pipeline
+        image: placeholder/devops-cicd-pipeline:latest  # Will be updated by CI/CD pipeline
         ports:
         - containerPort: 3000
           name: http
