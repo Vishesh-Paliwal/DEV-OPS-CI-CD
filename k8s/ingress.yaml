@@ -7,7 +7,6 @@ metadata:
     app: devops-api
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /
     # DigitalOcean Load Balancer optimizations
     service.beta.kubernetes.io/do-loadbalancer-size-unit: "1"  # Smallest LB size
 spec:
