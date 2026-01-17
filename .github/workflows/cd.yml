@@ -59,8 +59,8 @@ jobs:
         echo "Creating namespace..."
         kubectl apply -f k8s/namespace.yaml
         
-        # Wait a moment for namespace to be ready
-        kubectl wait --for=condition=Active namespace/devops-demo --timeout=30s
+        # Verify namespace exists (no wait needed, namespaces are ready immediately)
+        kubectl get namespace devops-demo
         
         # Apply remaining manifests in order
         echo "Applying ConfigMap..."
