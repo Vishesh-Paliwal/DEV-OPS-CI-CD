@@ -1,9 +1,5 @@
 # DevOps CI/CD Pipeline Project
 
-![CI/CD Pipeline](https://github.com/<your-username>/<your-repo>/actions/workflows/ci.yml/badge.svg)
-[![Docker Hub](https://img.shields.io/badge/docker-hub-blue.svg)](https://hub.docker.com/r/<your-username>/<your-repo>)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 A production-grade CI/CD pipeline demonstration using GitHub Actions with a Node.js Express REST API.
 
 ## Overview
@@ -294,24 +290,6 @@ The GitHub Actions pipeline is the heart of this project, automating quality, se
 
 To enable DockerHub publishing, you must configure the following secrets in your GitHub repository:
 
-#### Step-by-Step Setup:
-
-1. **Navigate to Repository Settings**
-   - Go to your GitHub repository
-   - Click **Settings** → **Secrets and variables** → **Actions**
-
-2. **Create DockerHub Access Token**
-   - Log in to [DockerHub](https://hub.docker.com)
-   - Go to **Account Settings** → **Security**
-   - Click **New Access Token**
-   - Give it a descriptive name (e.g., "GitHub Actions CI/CD")
-   - Set permissions to **Read & Write**
-   - Copy the generated token (you won't see it again!)
-
-3. **Add Secrets to GitHub**
-   - Back in GitHub repository settings, click **New repository secret**
-   - Add the following two secrets:
-
    **Secret 1: DOCKERHUB_USERNAME**
    - Name: `DOCKERHUB_USERNAME`
    - Value: Your DockerHub username (e.g., `johndoe`)
@@ -320,13 +298,6 @@ To enable DockerHub publishing, you must configure the following secrets in your
    - Name: `DOCKERHUB_TOKEN`
    - Value: The access token you copied from DockerHub
 
-4. **Verify Configuration**
-   - Push code to master branch
-   - Check GitHub Actions tab to see if the pipeline runs
-   - Verify the "Publish to DockerHub" stage succeeds
-   - Check your DockerHub repository for the published image
-
-**Security Note**: Never commit DockerHub credentials to your repository. Always use GitHub Secrets for sensitive information.
 
 ## Testing Strategy
 
@@ -376,6 +347,3 @@ The pipeline includes multiple security layers following the "shift-left" securi
 - **Fail-Fast on Critical Issues**: Pipeline blocks deployment if critical vulnerabilities found
 - **Multiple Validation Layers**: Defense in depth approach with multiple scanning tools
 
-## License
-
-MIT
